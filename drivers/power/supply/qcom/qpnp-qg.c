@@ -2166,6 +2166,9 @@ static int qg_psy_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		rc = qg_get_charge_counter(chip, &pval->intval);
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_NOW:
+		pval->intval = chip->cl->init_cap_uah;
+		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 		if (!chip->dt.cl_disable && chip->dt.cl_feedback_on)
 			rc = qg_get_learned_capacity(chip, &temp);
@@ -2272,6 +2275,7 @@ static enum power_supply_property qg_psy_props[] = {
 	POWER_SUPPLY_PROP_BATT_PROFILE_VERSION,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_CYCLE_COUNTS,
+	POWER_SUPPLY_PROP_CHARGE_NOW,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
@@ -2930,6 +2934,7 @@ static int get_batt_id_ohm(struct qpnp_qg *chip, u32 *batt_id_ohm)
 	return 0;
 }
 
+#define SDAM_MAGIC_NUMBER		0x12345678
 static int qg_load_battery_profile(struct qpnp_qg *chip)
 {
 	struct device_node *node = chip->dev->of_node;
@@ -2997,6 +3002,13 @@ static int qg_load_battery_profile(struct qpnp_qg *chip)
 	if (rc < 0) {
 		pr_err("Failed to read battery fastcharge current rc:%d\n", rc);
 		chip->bp.fastchg_curr_ma = -EINVAL;
+	}
+
+	rc = of_property_read_u32(profile_node, "qcom,sdam-magic-number",
+				&chip->bp.sdam_magic_number);
+	if (rc < 0) {
+		pr_err("Failed to read sdam magic number rc:%d\n", rc);
+		chip->bp.sdam_magic_number = SDAM_MAGIC_NUMBER;
 	}
 
 	/*
@@ -3346,7 +3358,6 @@ static int qg_set_wa_flags(struct qpnp_qg *chip)
 	return 0;
 }
 
-#define SDAM_MAGIC_NUMBER		0x12345678
 static int qg_sanitize_sdam(struct qpnp_qg *chip)
 {
 	int rc = 0;
@@ -3358,10 +3369,10 @@ static int qg_sanitize_sdam(struct qpnp_qg *chip)
 		return rc;
 	}
 
-	if (data == SDAM_MAGIC_NUMBER) {
+	if (data == chip->bp.sdam_magic_number) {
 		qg_dbg(chip, QG_DEBUG_PON, "SDAM valid\n");
 	} else if (data == 0) {
-		rc = qg_sdam_write(SDAM_MAGIC, SDAM_MAGIC_NUMBER);
+		rc = qg_sdam_write(SDAM_MAGIC, chip->bp.sdam_magic_number);
 		if (!rc)
 			qg_dbg(chip, QG_DEBUG_PON, "First boot. SDAM initilized\n");
 	} else {
@@ -3369,7 +3380,7 @@ static int qg_sanitize_sdam(struct qpnp_qg *chip)
 		rc = qg_sdam_clear();
 		if (!rc) {
 			pr_err("SDAM uninitialized, SDAM reset\n");
-			rc = qg_sdam_write(SDAM_MAGIC, SDAM_MAGIC_NUMBER);
+			rc = qg_sdam_write(SDAM_MAGIC, chip->bp.sdam_magic_number);
 		}
 	}
 

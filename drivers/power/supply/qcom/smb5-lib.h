@@ -14,6 +14,7 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/consumer.h>
 #include <linux/extcon-provider.h>
+#include <linux/usb/usbpd.h>
 #include "storm-watch.h"
 #include "battery.h"
 
@@ -91,8 +92,10 @@ enum print_reason {
 
 #define SDP_100_MA			100000
 #define SDP_CURRENT_UA			500000
+#define OCP_CURRENT_UA			1000000
 #define CDP_CURRENT_UA			1500000
 #define DCP_CURRENT_UA			1500000
+#define HVDCP_2_CURRENT_UA		1500000
 #define HVDCP_CURRENT_UA		3000000
 #define TYPEC_DEFAULT_CURRENT_UA	900000
 #define TYPEC_MEDIUM_CURRENT_UA		1500000
@@ -507,6 +510,7 @@ struct smb_charger {
 	int			default_icl_ua;
 	int			otg_cl_ua;
 	bool			uusb_apsd_rerun_done;
+	bool			typec_apsd_rerun_done;
 	bool			typec_present;
 	int			fake_input_current_limited;
 	int			typec_mode;
@@ -577,6 +581,12 @@ struct smb_charger {
 
 	/* extcon for VBUS / ID notification to USB for uUSB */
 	struct extcon_dev	*extcon;
+
+	/* USB PD interactions */
+	struct usbpd		*pd;
+	int			pd_contract_uv;
+	int			pd_voltage_max_uv;
+	struct delayed_work	pd_contract_work;
 
 	/* battery profile */
 	int			batt_profile_fcc_ua;
