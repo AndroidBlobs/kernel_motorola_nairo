@@ -3,6 +3,38 @@
 # QCOM Soc drivers
 #
 menu "Qualcomm SoC drivers"
+config MMI_DEVICE_DTBS
+	depends on ARCH_QCOM
+	default n
+	bool "Motorola Mobility Device DTBs"
+	help
+		Only include Motorola device specific DTBs to limit the number that
+		get built during kernel compilation.
+
+config SMITH_DTB
+	depends on ARCH_QCOM
+	default n
+	bool "SMITH DTBs"
+	help
+	Only include SMITH specific DTBs to limit the number that
+	get built during kernel compilation.
+
+config RACER_DTB
+	depends on ARCH_QCOM
+	default n
+	bool "RACER DTBs"
+	help
+	Only include RACER specific DTBs to limit the number that
+	get built during kernel compilation.
+
+config NAIRO_DTB
+	depends on ARCH_QCOM
+	default n
+	bool "NAIBO DTBs"
+	help
+	Only include NAIBO specific DTBs to limit the number that
+	get built during kernel compilation.
+
 config QCOM_COMMAND_DB
 	bool "Qualcomm Command DB"
 	depends on ARCH_QCOM || COMPILE_TEST
